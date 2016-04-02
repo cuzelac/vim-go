@@ -122,12 +122,19 @@ function! go#fmt#Format(withGoimport)
                 echomsg "  update with: :GoUpdateBinaries"
                 echohl None
             else
-               let b:goimports_vendor_compatible = 1
+                let b:goimports_vendor_compatible = 1
             endif
         endif
 
         if exists('b:goimports_vendor_compatible') && b:goimports_vendor_compatible
-            let command  = command . '-srcdir ' . fnameescape(expand("%:p:h"))
+            "resolve and follow the file if it's a link
+            let fname  = expand('%')
+            if getftype(fname) == "link"
+                let fname = resolve(fname)
+            endif
+
+            let dir = fnamemodify(fname, ":p:h")
+            let command  = command . '-srcdir ' . fnameescape(dir)
         endif
     endif
 
@@ -148,7 +155,15 @@ function! go#fmt#Format(withGoimport)
 
         " Replace current file with temp file, then reload buffer
         let old_fileformat = &fileformat
-        call rename(l:tmpname, expand('%'))
+
+        "resolve and follow the file if it's a link
+        let fname  = expand('%')
+        if getftype(fname) == "link"
+            let fname = resolve(fname)
+        endif
+
+        call rename(l:tmpname, fname)
+
         silent edit!
         let &fileformat = old_fileformat
         let &syntax = &syntax
